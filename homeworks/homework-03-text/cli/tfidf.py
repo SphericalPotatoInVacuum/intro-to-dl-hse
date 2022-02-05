@@ -3,7 +3,7 @@ from loguru import logger
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 
 from cli.regressors import regressors
@@ -17,15 +17,16 @@ class TfIdfRegressor(BaseEstimator, RegressorMixin):
                 ('tfidf_n', TfidfVectorizer(preprocessor=lambda x: ' '.join(x)), 'negative'),
                 ('tfidf', TfidfVectorizer(preprocessor=lambda x: ' '.join(x)), 'review'),
             ])),
-            ('regression', Ridge())
+            ('regression', LogisticRegression(max_iter=10000))
         ])
 
     def fit(self, X, y):
-        self.clf = self.clf.fit(X, y)
+        self.clf = self.clf.fit(X, (y * 10).astype(int))
         return self
 
     def predict(self, X):
-        return self.clf.predict(X)
+        weights = self.clf.predict_proba(X)
+        return weights @ self.clf.classes_ / 10
 
 
 regressors['TFIDF'] = TfIdfRegressor

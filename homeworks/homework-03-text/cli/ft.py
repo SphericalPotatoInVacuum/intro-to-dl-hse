@@ -2,18 +2,18 @@ from collections import Counter, defaultdict
 from typing import Sequence
 import numpy as np
 import pandas as pd
-from gensim.models import Word2Vec
+from gensim.models import FastText
 from gensim.models.keyedvectors import BaseKeyedVectors
 from loguru import logger
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
 
 from cli.regressors import regressors
 
 
-class WVHelper:
+class FTHelper:
     wv: BaseKeyedVectors
     idf: dict[str, float]
     dim: int
@@ -23,8 +23,8 @@ class WVHelper:
         self.name = name
         self.dim = dim
 
-        model = Word2Vec(sentences=corpus, size=dim, seed=42, workers=16)
-        logger.info(f'Created word2vec model')
+        model = FastText(sentences=corpus, size=dim, iter=10, workers=16)
+        logger.info(f'Created FastText model')
 
         self.wv: BaseKeyedVectors = model.wv
         del model
@@ -41,11 +41,11 @@ class WVHelper:
         )
         logger.info('Calculated idf statistics')
 
-        logger.success(f'Initialized WVHelper for column {name}')
+        logger.success(f'Initialized FTHelper for column {name}')
 
 
-class W2V(BaseEstimator):
-    def __init__(self, helper: WVHelper):
+class FT(BaseEstimator):
+    def __init__(self, helper: FTHelper):
         self.helper = helper
         self.wv = helper.wv
         self.dim = helper.dim
@@ -56,7 +56,7 @@ class W2V(BaseEstimator):
 
     def transform(self, X):
         ret = X.copy()
-        ret = ret.parallel_apply(self._process).to_numpy()
+        ret = ret.apply(self._process).to_numpy()
         ret = np.stack(ret)
         return ret
 
@@ -71,30 +71,31 @@ class W2V(BaseEstimator):
         return {'helper': self.helper}
 
 
-class W2VRegressor(BaseEstimator, RegressorMixin):
+class FTRegressor(BaseEstimator, RegressorMixin):
     def __init__(self, corpus=pd.DataFrame, dim=300):
-        logger.info('Initializing W2V')
-        from pandarallel import pandarallel
-        pandarallel.initialize(use_memory_fs=False, verbose=1)
+        logger.info('Initializing FT')
 
-        wvs: dict[str, WVHelper] = {
-            column: WVHelper(corpus[column], column, dim) for column in corpus.columns
+        logger.info('Initialized pandarallel')
+
+        wvs: dict[str, FTHelper] = {
+            column: FTHelper(corpus[column], column, dim) for column in corpus.columns
         }
+        logger.info('Initialized wvs dict')
 
         self.clf = Pipeline([
-            ('w2v', ColumnTransformer([
-                (name, W2V(wv), name) for name, wv in wvs.items()
+            ('FT', ColumnTransformer([
+                (name, FT(wv), name) for name, wv in wvs.items()
             ])),
-            ('regression', LogisticRegression(max_iter=10000, n_jobs=-1))
+            ('regression', Ridge())
         ])
+        logger.info('Created a pipeline')
 
     def fit(self, X, y):
         self.clf = self.clf.fit(X, y)
         return self
 
     def predict(self, X):
-        weights = self.clf.predict_proba(X)
-        return np.around(weights @ self.clf.classes_) / 10
+        return np.around(self.clf.predict(X), 1)
 
 
-regressors['W2V'] = W2VRegressor
+regressors['FT'] = FTRegressor

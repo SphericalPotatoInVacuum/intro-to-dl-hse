@@ -12,7 +12,7 @@ def process_text(text: str) -> list[str]:
     # remove empty parts
     text = text.replace('No Negative', '').replace('No Positive', '')
     # tokenize
-    words = word_tokenize(text)
+    words = word_tokenize(text.lower())
     # remove all punctuation
     words = [word.strip(string.punctuation) for word in words]
     # remove stop words

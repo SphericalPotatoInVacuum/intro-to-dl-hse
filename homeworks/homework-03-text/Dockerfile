@@ -5,7 +5,7 @@ WORKDIR /app
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt update && apt install -y software-properties-common
 RUN apt update && add-apt-repository ppa:deadsnakes/ppa
-RUN apt update && apt install -y python3.9 python3-pip
+RUN apt update && apt install -y python3.9 python3.9-dev python3-pip
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
 
 COPY requirements.txt .
