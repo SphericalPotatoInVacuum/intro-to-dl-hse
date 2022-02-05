@@ -1,17 +1,17 @@
+import datetime
 from collections import defaultdict
 from dataclasses import dataclass, field
-import datetime
 from pathlib import Path
 from time import time_ns
 from typing import Sequence
-from loguru import logger
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from loguru import logger
 from sklearn.base import BaseEstimator
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
-import matplotlib.pyplot as plt
 
 from cli.regressors import regressors
 
@@ -41,11 +41,19 @@ def train_epoch(model, X_train, y_train, X_val, y_val):
 
 
 @logger.catch
-def train(model_name: str, train_path: str, test_path: str, pred_path: str):
-    df_train: pd.DataFrame = pd.read_pickle(train_path)
-    X_test: pd.DataFrame = pd.read_pickle(test_path)
+def train(model_name: str, data_path: Path, pred_path: Path):
+    Regressor = regressors[model_name]
 
-    logger.success(f'Loaded train data from {train_path} and test data from {test_path}')
+    df_train: pd.DataFrame
+    X_test: pd.DataFrame
+    if Regressor.need_preprocessing:
+        df_train = pd.read_pickle(data_path / 'processed_train.pickle')
+        X_test = pd.read_pickle(data_path / 'processed_test.pickle')
+    else:
+        df_train = pd.read_csv(data_path / 'train.csv')
+        X_test = pd.read_csv(data_path / 'test.csv')
+
+    logger.success(f'Successfully loaded data')
 
     df_train = df_train.sample(frac=1.0)
     X = df_train.drop(columns=['score'])
@@ -56,13 +64,10 @@ def train(model_name: str, train_path: str, test_path: str, pred_path: str):
     params: Params = Params()
     if (model_name == 'W2V'):
         corpus = pd.concat((X, X_test))[['positive', 'negative', 'review']]
-        params = Params([
-            {'corpus': corpus, 'dim': dim}
-            for dim in np.linspace(100, 1100, 11, dtype=int)
-        ], ['dim'])
+        params = Params([{'corpus': corpus, 'dim': 1000}], [])
     if (model_name == 'FT'):
         corpus = pd.concat((X, X_test))[['positive', 'negative']]
-        params = Params([{'corpus': corpus, 'dim': 300}], ['dim'])
+        params = Params([{'corpus': corpus, 'dim': 300}], [])
 
     dd = defaultdict(list)
     best_kwargs = {}
@@ -73,7 +78,7 @@ def train(model_name: str, train_path: str, test_path: str, pred_path: str):
             recording = {param: kwargs[param] for param in params.record}
             logger.info(f'Params: {recording}')
 
-            model = regressors[model_name](**kwargs)
+            model = Regressor(**kwargs)
 
             train_loss, val_loss = train_epoch(model, X_train, y_train, X_val, y_val)
 

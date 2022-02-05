@@ -1,5 +1,6 @@
 from collections import Counter, defaultdict
 from typing import Sequence
+
 import numpy as np
 import pandas as pd
 from gensim.models import FastText
@@ -72,6 +73,8 @@ class FT(BaseEstimator):
 
 
 class FTRegressor(BaseEstimator, RegressorMixin):
+    need_preprocessing = True
+
     def __init__(self, corpus=pd.DataFrame, dim=300):
         logger.info('Initializing FT')
 

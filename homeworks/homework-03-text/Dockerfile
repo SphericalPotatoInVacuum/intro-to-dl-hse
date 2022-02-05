@@ -11,7 +11,6 @@ RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.9 1
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt -f https://download.pytorch.org/whl/cu113/torch_stable.html
 
-COPY word_linear_glove_500d word_linear_glove_500d/
 COPY data data/
 COPY cli cli/
 COPY Makefile text.py ./

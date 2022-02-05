@@ -10,6 +10,8 @@ from cli.regressors import regressors
 
 
 class TfIdfRegressor(BaseEstimator, RegressorMixin):
+    need_preprocessing = True
+
     def __init__(self):
         self.clf = Pipeline([
             ('tfidf', ColumnTransformer([

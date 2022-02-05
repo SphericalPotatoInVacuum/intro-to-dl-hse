@@ -1,5 +1,6 @@
 from collections import Counter, defaultdict
 from typing import Sequence
+
 import numpy as np
 import pandas as pd
 from gensim.models import Word2Vec
@@ -7,7 +8,7 @@ from gensim.models.keyedvectors import BaseKeyedVectors
 from loguru import logger
 from sklearn.base import BaseEstimator, RegressorMixin
 from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
 
 from cli.regressors import regressors
@@ -72,6 +73,8 @@ class W2V(BaseEstimator):
 
 
 class W2VRegressor(BaseEstimator, RegressorMixin):
+    need_preprocessing = True
+
     def __init__(self, corpus=pd.DataFrame, dim=300):
         logger.info('Initializing W2V')
         from pandarallel import pandarallel
@@ -85,7 +88,7 @@ class W2VRegressor(BaseEstimator, RegressorMixin):
             ('w2v', ColumnTransformer([
                 (name, W2V(wv), name) for name, wv in wvs.items()
             ])),
-            ('regression', LogisticRegression(max_iter=10000, n_jobs=-1))
+            ('regression', Ridge())
         ])
 
     def fit(self, X, y):
@@ -93,8 +96,7 @@ class W2VRegressor(BaseEstimator, RegressorMixin):
         return self
 
     def predict(self, X):
-        weights = self.clf.predict_proba(X)
-        return np.around(weights @ self.clf.classes_) / 10
+        return self.clf.predict(X)
 
 
 regressors['W2V'] = W2VRegressor
