@@ -56,9 +56,9 @@ def train(model_name: str, data_path: Path, pred_path: Path):
 
     logger.success(f'Loaded data')
 
-    df_train = df_train.sample(frac=1.0)
-    X = df_train.drop(columns=['score'])
-    y = df_train.score
+    df_train_small = df_train.sample(frac=1.0)
+    X = df_train_small.drop(columns=['score'])
+    y = df_train_small.score
 
     X_train, X_val, y_train, y_val = train_test_split(X, y, random_state=1412)
 

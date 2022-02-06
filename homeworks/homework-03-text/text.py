@@ -14,12 +14,10 @@ def cli():
 
 
 @cli.command('preprocess')
-@click.option('-i', '--input', 'input_file',
-              type=click.Path(exists=True, dir_okay=False, readable=True),
-              default='data/train.csv')
-@click.option('-o', '--output', 'output_file',
-              type=click.Path(dir_okay=False, writable=True),
-              default='data/processed.pickle')
+@click.argument('input_file',
+                type=click.Path(exists=True, dir_okay=False, readable=True))
+@click.argument('output_file',
+                type=click.Path(dir_okay=False, writable=True))
 def preprocess(input_file: str, output_file: str):
     _preprocess(input_file, output_file)
 
