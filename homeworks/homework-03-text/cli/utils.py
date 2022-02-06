@@ -6,10 +6,8 @@ from time import time_ns
 from typing import Sequence
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from loguru import logger
-from sklearn.base import BaseEstimator
 from sklearn.metrics import mean_absolute_error
 from sklearn.model_selection import train_test_split
 
@@ -29,9 +27,10 @@ def train_epoch(model, X_train, y_train, X_val, y_val):
     clf = model.fit(X_train, y_train)
     logger.success('Fitting finished')
 
+    logger.info('Calculating losses')
     train_loss = mean_absolute_error(y_train, clf.predict(X_train))
-    val_loss = mean_absolute_error(y_val, clf.predict(X_val))
     logger.info(f'Train MAE: {train_loss}')
+    val_loss = mean_absolute_error(y_val, clf.predict(X_val))
     logger.info(f'Validation MAE: {val_loss}')
 
     elapsed = time_ns() - start_time
@@ -51,9 +50,11 @@ def train(model_name: str, data_path: Path, pred_path: Path):
         X_test = pd.read_pickle(data_path / 'processed_test.pickle')
     else:
         df_train = pd.read_csv(data_path / 'train.csv')
+        df_train['review'] = df_train['positive'] + ' ' + df_train['negative']
         X_test = pd.read_csv(data_path / 'test.csv')
+        X_test['review'] = X_test['positive'] + X_test['negative']
 
-    logger.success(f'Successfully loaded data')
+    logger.success(f'Loaded data')
 
     df_train = df_train.sample(frac=1.0)
     X = df_train.drop(columns=['score'])
@@ -95,6 +96,7 @@ def train(model_name: str, data_path: Path, pred_path: Path):
             model = regressors[model_name](**best_kwargs)
             clf = model.fit(X, y)
             logger.success('Fitting finished')
+            logger.info('Predicting test ratings')
             X_test['score'] = clf.predict(X_test)
     else:
         model = regressors[model_name]()
@@ -102,7 +104,9 @@ def train(model_name: str, data_path: Path, pred_path: Path):
         logger.info('Started fitting full dataset')
         clf = model.fit(X, y)
         logger.success('Fitting finished')
+        logger.info('Predicting test ratings')
         X_test['score'] = clf.predict(X_test)
+    logger.success('Prediction complete')
 
     save_path = Path(
         pred_path) / f'{datetime.datetime.utcnow().strftime("%Y-%m-%d %H-%M-%S")} {model_name} {train_loss:.3f}-{val_loss:.3f}.csv'

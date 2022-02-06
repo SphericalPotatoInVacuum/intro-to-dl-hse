@@ -32,8 +32,8 @@ def preprocess(input_file: str, output_file: str):
               type=click.Path(file_okay=False, writable=True),
               default='predictions')
 @click.argument('model_name', type=click.Choice(list(regressors.keys()), case_sensitive=False))
-def train(train_path: str, data_path: str, pred_path: str, model_name: str):
-    _train(model_name, Path(train_path), Path(pred_path))
+def train(data_path: str, pred_path: str, model_name: str):
+    _train(model_name, Path(data_path), Path(pred_path))
 
 
 if __name__ == '__main__':
